@@ -203,6 +203,13 @@ public:
     {
         return iter_;
     }
+
+    template <typename To>
+        requires std::convertible_to<Iter, To>
+    operator utf8_to_utf32_iterator<To>(this auto&& self)
+    {
+        return utf8_to_utf32_iterator<To>{static_cast<To>(std::forward_like<decltype(self)>(self.iter_))};
+    }
 };
 
 template <typename T, typename U>
