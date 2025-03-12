@@ -24,17 +24,17 @@ namespace utf
 {
 
 template <typename T>
-concept Utf8CharOrByteType = std::same_as<T, std::byte> || std::same_as<T, char> || std::same_as<T, char8_t>;
+concept Utf8CharOrByte = std::same_as<T, std::byte> || std::same_as<T, char> || std::same_as<T, char8_t>;
 
 template <typename T>
-concept Utf32CharType = std::same_as<T, char32_t> || std::same_as<T, std::uint32_t>;
+concept Utf32Char = std::same_as<T, char32_t> || std::same_as<T, std::uint32_t>;
 
 template <typename In>
 concept Utf8ByteIterator = std::input_iterator<In>
                            && (std::convertible_to<std::iter_value_t<In>, std::byte>
-                               || Utf8CharOrByteType<std::remove_cvref_t<std::iter_value_t<In>>>);
+                               || Utf8CharOrByte<std::remove_cvref_t<std::iter_value_t<In>>>);
 
-template <Utf32CharType Char>
+template <Utf32Char Char>
 constexpr auto is_valid_codepoint(Char codepoint) noexcept
 {
     const auto cp = static_cast<std::uint32_t>(codepoint);
@@ -42,7 +42,7 @@ constexpr auto is_valid_codepoint(Char codepoint) noexcept
     return !(cp > 0x10'FFFF || (cp >= 0xD800 && cp <= 0xDFFF));
 }
 
-template <Utf32CharType Char>
+template <Utf32Char Char>
 constexpr auto is_valid_utf8_byte(Char byte) noexcept
 {
     const auto value = static_cast<std::uint8_t>(byte);
@@ -53,7 +53,7 @@ constexpr auto is_valid_utf8_byte(Char byte) noexcept
     return true;
 }
 
-template <Utf32CharType Char>
+template <Utf32Char Char>
 constexpr auto utf8_length_from_utf32(Char codepoint) noexcept -> std::size_t
 {
     const auto cp = static_cast<std::uint32_t>(codepoint);
@@ -69,7 +69,7 @@ constexpr auto utf8_length_from_utf32(Char codepoint) noexcept -> std::size_t
     }
 }
 
-template <Utf8CharOrByteType Byte>
+template <Utf8CharOrByte Byte>
 constexpr auto utf8_lead_byte_length(Byte lead) noexcept -> std::size_t
 {
     auto byte = static_cast<std::uint8_t>(lead);
@@ -81,7 +81,7 @@ constexpr auto utf8_lead_byte_length(Byte lead) noexcept -> std::size_t
 }
 
 template <std::input_or_output_iterator Out>
-    requires Utf8CharOrByteType<std::remove_reference_t<std::iter_reference_t<Out>>>
+    requires Utf8CharOrByte<std::remove_reference_t<std::iter_reference_t<Out>>>
              && std::output_iterator<Out, std::remove_reference_t<std::iter_reference_t<Out>>>
 auto utf32_to_utf8(char32_t codepoint, Out out) noexcept
 {
@@ -146,7 +146,7 @@ constexpr auto utf8_to_utf32(In in) noexcept -> std::pair<char32_t, In>
 }
 
 template <Utf8ByteIterator Iter>
-struct utf8_iterator
+struct utf8_to_utf32_iterator
 {
 private:
     Iter iter_;
@@ -162,28 +162,28 @@ public:
     using value_type        = char32_t;
     using difference_type   = std::ptrdiff_t;
 
-    explicit constexpr utf8_iterator() noexcept = default;
+    explicit constexpr utf8_to_utf32_iterator() noexcept = default;
 
-    explicit constexpr utf8_iterator(Iter iter) noexcept : iter_{iter} {}
+    explicit constexpr utf8_to_utf32_iterator(Iter iter) noexcept : iter_{iter} {}
 
     constexpr auto operator*() const noexcept -> char32_t
     {
         return utf8_to_utf32(iter_).first;
     }
 
-    constexpr auto operator++(this utf8_iterator& self) noexcept -> utf8_iterator&
+    constexpr auto operator++(this utf8_to_utf32_iterator& self) noexcept -> utf8_to_utf32_iterator&
     {
         std::advance(self.iter_, utf8_lead_byte_length(*self.iter_));
         return self;
     }
 
-    constexpr auto operator++(this utf8_iterator self, int) noexcept -> utf8_iterator
+    constexpr auto operator++(this utf8_to_utf32_iterator self, int) noexcept -> utf8_to_utf32_iterator
     {
         ++self;
         return self;
     }
 
-    constexpr auto operator--(this utf8_iterator& self) noexcept -> utf8_iterator&
+    constexpr auto operator--(this utf8_to_utf32_iterator& self) noexcept -> utf8_to_utf32_iterator&
         requires std::bidirectional_iterator<Iter>
     {
         do {
@@ -192,7 +192,7 @@ public:
         return self;
     }
 
-    constexpr auto operator--(this utf8_iterator self, int) noexcept -> utf8_iterator
+    constexpr auto operator--(this utf8_to_utf32_iterator self, int) noexcept -> utf8_to_utf32_iterator
         requires std::bidirectional_iterator<Iter>
     {
         --self;
@@ -206,7 +206,7 @@ public:
 };
 
 template <typename T, typename U>
-constexpr auto operator==(const utf8_iterator<T>& lhs, const utf8_iterator<U>& rhs)
+constexpr auto operator==(const utf8_to_utf32_iterator<T>& lhs, const utf8_to_utf32_iterator<U>& rhs)
     noexcept(noexcept(lhs.base() == rhs.base())) -> bool
     requires std::equality_comparable_with<T, U>
 {
@@ -214,7 +214,7 @@ constexpr auto operator==(const utf8_iterator<T>& lhs, const utf8_iterator<U>& r
 }
 
 template <typename T, typename U>
-constexpr auto operator<=>(const utf8_iterator<T>& lhs, const utf8_iterator<U>& rhs)
+constexpr auto operator<=>(const utf8_to_utf32_iterator<T>& lhs, const utf8_to_utf32_iterator<U>& rhs)
     noexcept(noexcept(lhs.base() <=> rhs.base()))
     requires std::three_way_comparable_with<T, U>
 {
@@ -223,7 +223,7 @@ constexpr auto operator<=>(const utf8_iterator<T>& lhs, const utf8_iterator<U>& 
 
 constexpr auto iterate_utf8(Utf8ByteIterator auto iter) noexcept
 {
-    return utf8_iterator{std::move(iter)};
+    return utf8_to_utf32_iterator{std::move(iter)};
 }
 
 constexpr auto iterate_utf8(Utf8ByteIterator auto first, Utf8ByteIterator auto last) noexcept
@@ -242,7 +242,7 @@ constexpr auto iterate_utf8(Iter first, Sentinel last) noexcept
 
 }
 
-struct as_utf32_t : std::ranges::range_adaptor_closure<as_utf32_t>
+struct from_utf8_to_utf32_t : std::ranges::range_adaptor_closure<from_utf8_to_utf32_t>
 {
     static constexpr auto operator()(std::ranges::range auto&& r) noexcept
     {
@@ -258,7 +258,7 @@ export namespace kqm
 namespace ranges::views
 {
 
-constexpr auto as_utf32 = as_utf32_t{};
+constexpr auto from_utf8_to_utf32 = from_utf8_to_utf32_t{};
 
 }
 
