@@ -213,3 +213,12 @@ public:
 };
 
 }
+
+export template <>
+struct std::formatter<kqm::string_view, char> : std::formatter<std::string_view, char>
+{
+    auto format(kqm::string_view s, auto&& ctx) const
+    {
+        return std::formatter<std::string_view, char>::format(s.to_std_string_view(), ctx);
+    }
+};

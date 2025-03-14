@@ -700,3 +700,12 @@ using string = basic_string<std::pmr::polymorphic_allocator<std::byte>>;
 }
 
 }
+
+export template <typename Allocator>
+struct std::formatter<kqm::basic_string<Allocator>, char> : std::formatter<kqm::string_view, char>
+{
+    auto format(const kqm::basic_string<Allocator>& s, auto&& ctx) const
+    {
+        return std::formatter<kqm::string_view, char>::format(s.all(), ctx);
+    }
+};
