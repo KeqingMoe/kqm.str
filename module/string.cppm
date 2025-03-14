@@ -4,7 +4,7 @@ import std;
 import kqm.str.utf;
 import kqm.str.view;
 
-export struct const_propagator
+struct const_propagator
 {
     template <typename T, typename Self>
     constexpr auto operator()(this Self&, T* ptr) noexcept
@@ -695,9 +695,7 @@ using string = basic_string<>;
 namespace pmr
 {
 
-using basic_string = basic_string<std::pmr::polymorphic_allocator<std::byte>>;
-
-using string = basic_string;
+using string = basic_string<std::pmr::polymorphic_allocator<std::byte>>;
 
 }
 
