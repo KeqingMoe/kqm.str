@@ -151,13 +151,10 @@ public:
         append(sv);
     }
 
-    template <std::size_t N>
-    constexpr basic_string(const char (&str)[N], allocator_type alloc = allocator_type{})
+    constexpr basic_string(std::string_view sv, allocator_type alloc = allocator_type{})
         : basic_string{std::move(alloc)}
     {
-        append(string_view{
-            std::string_view{str, N}
-        });
+        append(sv);
     }
 
     constexpr basic_string(std::nullptr_t) = delete;
