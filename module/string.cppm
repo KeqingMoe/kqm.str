@@ -129,8 +129,8 @@ private:
             other.mem_ = nullptr;
             other.sso_ = {};
         } else {
-            sso_.siz = other.sso_.siz;
-            memcpy(sso_.dat, other.sso_.dat, sso_.siz);
+            mem_ = nullptr;
+            sso_ = other.sso_;
         }
     }
 
@@ -310,6 +310,7 @@ public:
         auto buf  = std::array<std::byte, 4uz>{};
         auto last = utf::utf32_to_utf8(ch, buf.data());
         replace_impl({pos.base(), 0uz}, {buf.data(), last});
+        return *this;
     }
 
     constexpr auto erase(iterator first, iterator last) & noexcept -> iterator
@@ -475,22 +476,14 @@ public:
         if (new_cap > max_size_bytes()) {
             throw std::length_error{"new_cap > max_size_bytes()"};
         }
-        auto [cap, mem, siz] = [this] {
-            if (mem_) {
-                return std::tuple{dyn_.cap, mem_, dyn_.siz};
-            } else {
-                return std::tuple{sso_size, sso_.dat, sso_.siz};
-            }
-        }();
-        if (new_cap < cap) return;
+        if (new_cap <= capacity()) return;
         auto [new_mem, alloc_siz] = alloc_.allocate_at_least(new_cap);
-        std::memcpy(new_mem, mem, siz);
+        std::memcpy(new_mem, data(), size_bytes());
+        auto new_dyn = dyn_t{size_bytes(), alloc_siz};
         if (mem_) {
             alloc_.deallocate(mem_, dyn_.cap);
-            dyn_.cap = alloc_siz;
-        } else {
-            sso_.siz = alloc_siz;
         }
+        dyn_ = new_dyn;
         mem_ = new_mem;
     }
 
